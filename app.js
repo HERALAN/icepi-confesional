@@ -1,17 +1,18 @@
 const DATA = window.ICEPI_DATA;
 const app = document.getElementById('app');
-let state = { screen:'home', chapter:null, paragraph:null, search:'', openCreed:null, histories:{}, openChurch:null, openImp:null, activeRef:null, refsOpen:false };
+let state = { screen:'home', chapter:null, paragraph:null, search:'', openCreed:null, histories:{}, openChurch:null, openImp:null, activeRef:null, refsOpen:false, epiStarted:false, epiStep:0 };
 
 const icons = { book:'☰', creed:'▤', column:'▥', family:'⌂' };
 function esc(s=''){return String(s).replace(/[&<>'"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[m]));}
 function snippet(t,n=145){let s=t.replace(/^\d+\.\d+\s*/,'').replace(/\s+/g,' ').trim(); return s.length>n?s.slice(0,n).trim()+'...':s;}
 function goto(screen, extra={}){ state={...state, screen, activeRef:null, refsOpen:false, ...extra}; render(); setTimeout(()=>window.scrollTo({top:0,behavior:'instant'}),0); }
-function topbar(title){return `<header class="topbar"><button class="btn-outline btn-small left" onclick="goto('home')">⌂ Home</button><h1>${esc(title)}</h1><button class="btn-outline btn-small right" onclick="goto('dashboard')">▦ Dashboard</button></header>`}
+function topbar(title){const isDash=title==='Dashboard'; const isMarco=title==='Marco Epistemológico'; const cls=isDash?' class="dashboard-heading"':(isMarco?' class="marco-heading"':''); const label=isMarco?'Marco<br>Epistemológico':esc(title); return `<header class="topbar"><button class="btn-outline btn-small left" onclick="goto('home')">⌂ Home</button><h1${cls}>${label}</h1><button class="btn-outline btn-small right" onclick="goto('dashboard')">▦ Dashboard</button></header>`}
 function footer(){return `<footer class="footer">I C E P I</footer>`}
 
 function render(){
   if(state.screen==='home') return renderHome();
   if(state.screen==='dashboard') return renderDashboard();
+  if(state.screen==='epistemology') return renderEpistemology();
   if(state.screen==='confession') return renderConfession();
   if(state.screen==='paragraph') return renderParagraph();
   if(state.screen==='confessionHistory') return renderConfessionHistory();
@@ -29,10 +30,11 @@ function renderHome(){
 }
 function renderDashboard(){
  const tiles=[
+  ['⚖️','¿Cómo sabemos que lo que creemos es verdad?','epistemology'],
   ['📖','Confesión de Londres de 1689','confession'],['📜','Credos','creeds'],['🏛','Importancia de los Credos y Confesiones','importance'],['⛪','Familia ICEPI','family']
  ];
- app.innerHTML=`<main class="screen"><header class="topbar"><span></span><h1>Dashboard</h1><button class="btn-outline btn-small right" onclick="goto('home')">⌂ Home</button></header>
- <section class="dashboard-grid">${tiles.map(t=>`<button class="tile card" onclick="goto('${t[2]}')"><div class="tile-icon">${t[0]}</div><div class="tile-title">${esc(t[1])}</div><div class="tile-arrow">›</div></button>`).join('')}</section>${footer()}</main>`
+ app.innerHTML=`<main class="screen"><header class="topbar"><span></span><h1 class="dashboard-heading">Dashboard</h1><button class="btn-outline btn-small right" onclick="goto('home')">⌂ Home</button></header>
+ <section class="dashboard-grid">${tiles.map(t=>`<button class="tile card ${t[2]==='epistemology'?'tile-epistemology':''}" onclick="goto('${t[2]}', ${t[2]==='epistemology' ? '{epiStarted:false,epiStep:0}' : '{}'} )"><div class="tile-icon">${t[0]}</div><div class="tile-title">${esc(t[1])}</div><div class="tile-arrow">›</div></button>`).join('')}</section>${footer()}</main>`
 }
 function renderConfession(){
  const selected = DATA.chapters.find(c=>c.number==state.chapter);
@@ -172,4 +174,89 @@ function renderImportance(){ app.innerHTML=`<main class="screen">${topbar('Impor
 function renderFamily(){ app.innerHTML=`<main class="screen">${topbar('Familia ICEPI')}<button class="btn-wide" onclick="goto('icepiHistory')">Conoce la historia de ICEPI</button><section class="info card">Las iglesias que conforman ICEPI comparten un legado histórico, una identidad común y el compromiso de caminar juntas en fidelidad a Cristo y a Su Palabra.</section><section class="accordion familia-list">${DATA.churches.map((c,i)=>renderChurch(c,i)).join('')}</section>${footer()}</main>`; }
 function renderChurch(c,i){ const open=state.openChurch===i; return `<article class="acc card"><button class="acc-head" onclick="state.openChurch=${open?null:i};render()"><span>${esc(c.name)}</span><span class="chev">${open?'⌃':'⌄'}</span></button>${open?`<div class="church-details"><div class="detail-row"><b>Dirección:</b><span>${esc(c.address)}</span></div><div class="detail-row"><b>Correo electrónico:</b><span>${esc(c.email)}</span></div><div class="detail-row"><b>Página web:</b><span>${esc(c.url)}</span></div></div>`:''}</article>`; }
 function renderIcepiHistory(){app.innerHTML=`<main class="screen">${topbar('Historia de ICEPI')}<article class="reader card"><button class="btn-ghost backlink" onclick="goto('family')">← Volver a Familia ICEPI</button><h2>Historia de ICEPI</h2><div class="text">${esc(DATA.icepiHistory)}</div></article>${footer()}</main>`}
+
+const EPI_STEPS = [
+  {
+    name:'Escritura', desc:'Fundamento supremo', icon:'📖', subtitle:'Fundamento epistemológico supremo',
+    principle:'El descubrimiento de cualquier doctrina legítima encuentra su base absoluta en la revelación escrita de Dios. La Escritura gobierna nuestra razón en lugar de ser subordinada a opiniones, costumbres o preferencias humanas.',
+    apply:'Toda afirmación doctrinal debe comenzar preguntando qué dice el texto sagrado. La autoridad final no descansa en la intuición, la tradición local o la popularidad de una práctica, sino en la Palabra de Dios como norma suficiente e infalible.',
+    verse:'“Toda la Escritura es inspirada por Dios, y útil para enseñar, para redargüir, para corregir, para instruir en justicia.”', ref:'2 Timoteo 3:16',
+    bullets:['Autoridad final e infalible.','Norma de fe y práctica.','Toda doctrina debe derivarse de ella.'],
+    risk:'Si este paso se omite, la doctrina puede terminar descansando en costumbre, emoción o herencia religiosa, no en revelación divina.',
+    example:'Para abordar la pregunta sobre quién debe ser bautizado, el análisis parte del mandato de Cristo en Mateo 28:19 y Marcos 16:15–16, y del patrón apostólico narrado en Hechos. La pregunta inicial no es qué hemos acostumbrado hacer, sino qué revela el Nuevo Testamento sobre el sujeto del bautismo.',
+    criterion:'Antes de aceptar o enseñar una doctrina, preguntamos: ¿qué dice la Escritura?, ¿es clara?, ¿es suficiente?, ¿tiene autoridad final sobre nuestra conclusión?'
+  },
+  {
+    name:'Exégesis', desc:'Método de extracción', icon:'🔍', subtitle:'Método de extracción doctrinal',
+    principle:'La doctrina no se impone al texto; se extrae mediante una lectura responsable que atiende palabras, gramática, sintaxis, contexto histórico y propósito del autor inspirado.',
+    apply:'El paso exegético analiza términos clave, sujetos, verbos, conectores, contexto inmediato, trasfondo cultural e intención del autor. Después formula una conclusión proporcional a la evidencia, no una conclusión inflada por preferencias previas.',
+    verse:'“Procura con diligencia presentarte a Dios aprobado... que usa bien la palabra de verdad.”', ref:'2 Timoteo 2:15',
+    bullets:['Analizar términos y gramática.','Revisar contexto inmediato e histórico.','Formular conclusiones doctrinales.'],
+    risk:'Usar textos como pretextos, leyendo en ellos algo que el autor bíblico no comunicó.',
+    example:'En el análisis del bautismo se examina el verbo βαπτίζω, su sentido de inmersión, y textos como Hechos 2:38. Allí el arrepentimiento precede al bautismo y el patrón narrativo muestra proclamación, respuesta consciente y acto público de identificación con Cristo.',
+    criterion:'Criterio del paso: la doctrina debe salir del sentido del texto, no de una tradición proyectada sobre el texto.'
+  },
+  {
+    name:'Analogía de la fe', desc:'Validación bíblica', icon:'🧩', subtitle:'Mecanismo de validación',
+    principle:'La Escritura interpreta la Escritura. Los textos claros iluminan los difíciles y ninguna doctrina debe construirse desde un pasaje aislado contra el conjunto del consejo de Dios.',
+    apply:'Comparamos pasajes breves con pasajes explícitos, narraciones con doctrina apostólica, y verificamos si la conclusión armoniza con toda la revelación. Mayor evidencia bíblica produce mayor certeza doctrinal.',
+    verse:'“La suma de tu palabra es verdad.”', ref:'Salmo 119:160',
+    bullets:['Los pasajes claros iluminan los difíciles.','Ninguna doctrina se construye sobre un texto aislado.','Mayor evidencia bíblica produce mayor certeza doctrinal.'],
+    risk:'Absolutizar una narración ambigua y usarla para contradecir patrones claros del Nuevo Testamento.',
+    example:'Las menciones de “casas enteras” se interpretan a la luz de textos más explícitos. En Hechos 16, la casa del carcelero oye la Palabra y se regocija por haber creído; en 1 Corintios 16:15 la familia de Estéfanas se dedica al servicio de los santos. La analogía de la fe aclara el sujeto real del bautismo.',
+    criterion:'Criterio del paso: una doctrina confiable debe armonizar con el conjunto de la Escritura.'
+  },
+  {
+    name:'Lógica', desc:'Guardián de la verdad', icon:'🛡️', subtitle:'Guardián de la verdad',
+    principle:'La verdad revelada por Dios no puede contradecirse. La lógica protege la coherencia interna de nuestras conclusiones doctrinales y evita inferencias inválidas.',
+    apply:'Revisamos si las <strong>premisas</strong> son bíblicas y si la <strong>conclusión</strong> se sigue correctamente de ellas. La lógica no gobierna sobre la Escritura; ayuda a no razonar contra ella.',
+    verse:'“Dios no es Dios de confusión, sino de paz.”', ref:'1 Corintios 14:33',
+    bullets:['Principio de no contradicción.','Coherencia doctrinal.','Armonización de conclusiones exegéticas.'],
+    risk:'Sostener afirmaciones que se niegan entre sí, confundiendo misterio bíblico con contradicción humana.',
+    example:'<strong>Premisa Mayor:</strong> el bautismo instituido en el Nuevo Testamento exige arrepentimiento moral y fe salvífica personal previa en el sujeto. <strong>Premisa Menor:</strong> los bebés e infantes carecen de la capacidad cognitiva para ejercer arrepentimiento y fe personal consciente. <strong>Conclusión:</strong> los bebés e infantes no corresponden al sujeto del bautismo bíblico neotestamentario; el credobautismo preserva la coherencia de la ordenanza.',
+    criterion:'Criterio del paso: una conclusión doctrinal debe ser bíblica y coherente, no solo emocionalmente aceptable.'
+  },
+  {
+    name:'Iglesia histórica', desc:'Testigo subordinado', icon:'⛪', subtitle:'Columna y baluarte de la verdad',
+    principle:'La iglesia es columna y baluarte de la verdad, no porque invente la verdad, sino porque la confiesa, preserva y transmite bajo la autoridad de la Escritura.',
+    apply:'Consultamos credos, confesiones, testimonio patrístico y teología histórica como testigos subordinados. La historia no decide por encima de la Biblia, pero sí nos ayuda a verificar continuidad, detectar novedades sospechosas y reconocer cómo la iglesia ha defendido la ortodoxia.',
+    verse:'“La iglesia del Dios viviente, columna y baluarte de la verdad.”', ref:'1 Timoteo 3:15',
+    bullets:['Credos históricos.','Confesiones de fe.','Verificación de ortodoxia.'],
+    risk:'Convertir una interpretación privada en autoridad absoluta, como si nadie hubiera leído la Biblia antes que nosotros.',
+    example:'Aunque el paidobautismo fue defendido por tradiciones como la presbiteriana y también por la tradición romana, el testimonio histórico conserva una línea persistente de bautismo de conversos: catecúmenos en la iglesia primitiva, voces como Tertuliano desaconsejando el bautismo apresurado de niños, la Reforma Radical y la tradición confesional bautista de 1644 y 1689.',
+    criterion:'Criterio del paso: la historia no crea la doctrina; funciona como testigo subordinado que pregunta si nuestra conclusión camina en continuidad responsable con la fe bíblica confesada.'
+  },
+  {
+    name:'Clasificación doctrinal', desc:'Jerarquización', icon:'⚖️', subtitle:'Jerarquización de la verdad',
+    principle:'No todas las doctrinas tienen el mismo peso. Clasificar evita tratar lo secundario como si fuera evangelio y evita rebajar lo esencial como si fuera una preferencia local.',
+    apply:'Evaluamos tres criterios: si la negación destruye la fe cristiana histórica, si la doctrina moldea profundamente la identidad y práctica de la iglesia, o si pertenece a asuntos periféricos, prudenciales o culturales.',
+    verse:'“Retén la forma de las sanas palabras que de mí oíste.”', ref:'2 Timoteo 1:13',
+    bullets:['Fundamentales: su negación destruye la fe cristiana histórica.','Esenciales: no determinan salvación, pero moldean identidad, orden y práctica eclesial.','Secundarias: asuntos periféricos o culturales que no alteran la columna vertebral doctrinal.'],
+    risk:'Confundir peso doctrinal: declarar no cristiano a quien difiere en un asunto esencial, o tratar una doctrina estructural como si fuera un simple gusto congregacional.',
+    example:'El credobautismo no es fundamental: diferir en el sujeto del bautismo no convierte a un creyente fiel en no cristiano. Tampoco es secundario: define membresía visible, eclesiología, administración de ordenanzas y práctica congregacional. Por ello se clasifica como doctrina esencial.',
+    criterion:'Criterio del paso: fundamental no significa “lo que más me importa”; esencial no significa “salvación”; secundario no significa “sin valor”. Significa peso doctrinal proporcional.'
+  }
+];
+function startEpistemology(){ state.epiStarted=true; state.epiStep=0; render(); setTimeout(()=>document.querySelector('.epi-process-title')?.scrollIntoView({block:'start',behavior:'smooth'}),0); }
+function setEpiStep(i){ state.epiStep=Math.max(0,Math.min(EPI_STEPS.length-1,i)); render(); setTimeout(()=>{document.querySelector('.epi-train-item.active')?.scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'});document.querySelector('.epi-process-title')?.scrollIntoView({block:'start',behavior:'smooth'});},0); }
+function renderEpistemology(){
+  const started=!!state.epiStarted;
+  app.innerHTML=`<main class="screen epi-screen">${topbar('Marco Epistemológico')}${!started?renderEpiIntro():renderEpiProcess()}${footer()}</main>`;
+  if(started){ setTimeout(()=>document.querySelector('.epi-train-item.active')?.scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'}),0); }
+}
+function renderEpiIntro(){
+  return `<section class="epi-intro card">
+    <h1>¿Cómo sabemos que lo que creemos es verdad?</h1>
+    <p>Toda doctrina cristiana presupone una pregunta previa: ¿cómo distinguimos entre una opinión humana y una enseñanza bíblica? Este módulo presenta el proceso que permite extraer, validar y clasificar doctrinas con fidelidad a la Escritura.</p>
+    <p class="epi-note">La verdad bíblica no se improvisa. Se reconoce mediante un método responsable que somete nuestras conclusiones a la Palabra de Dios, a la coherencia doctrinal y al testimonio histórico de la iglesia.</p>
+    <button class="btn-primary epi-start" onclick="startEpistemology()">Explora el marco epistemológico</button>
+  </section>`;
+}
+function renderEpiTrain(){return `<section class="epi-train card"><div class="epi-train-track">${EPI_STEPS.map((s,i)=>`<button class="epi-train-item ${i===state.epiStep?'active':''}" onclick="setEpiStep(${i})"><span class="epi-train-num">${i+1}</span><span class="epi-train-icon">${s.icon}</span><span class="epi-train-title">${esc(s.name)}</span><span class="epi-train-desc">${esc(s.desc)}</span></button>`).join('')}</div></section>`;}
+function renderEpiProcess(){
+ const s=EPI_STEPS[state.epiStep], last=state.epiStep===EPI_STEPS.length-1;
+ return `<section class="epi-process"><section class="epi-process-title card"><h1>El proceso completo</h1><p>Recorre los seis pasos que guían la validación doctrinal: desde la Escritura hasta la clasificación responsable de las doctrinas.</p></section>${renderEpiTrain()}<section class="epi-step-card card"><div class="epi-step-head"><div class="epi-step-number">${state.epiStep+1}</div><div><h2>${state.epiStep+1}. ${esc(s.name)}</h2><p>${esc(s.subtitle)}</p></div></div><div class="epi-step-layout"><article class="epi-main-panel"><div class="epi-big-icon">${s.icon}</div><div><h3>Principio</h3><p>${esc(s.principle)}</p><div class="epi-mini-list">${s.bullets.map(b=>`<div>${esc(b)}</div>`).join('')}</div></div></article><aside class="epi-meaning-panel"><h3>¿Cómo se aplica?</h3><p>${s.apply}</p><blockquote>${esc(s.verse)}<span>${esc(s.ref)}</span></blockquote></aside></div><article class="epi-example-card"><div class="epi-example-kicker">Ejemplo práctico persistente</div><h3>Bautismo de creyentes por profesión de fe consciente</h3><p class="question"><strong>Pregunta doctrinal:</strong> ¿quién debe ser bautizado según el patrón del Nuevo Testamento?</p><div class="epi-example-flow"><div class="epi-example-box bad"><h4>✕ Riesgo si se omite este paso</h4><p>${esc(s.risk)}</p></div><div class="epi-flow-arrow">→</div><div class="epi-example-box good"><h4>✓ Aplicación del paso</h4><p>${s.example}</p></div></div><div class="epi-criterion-box">${esc(s.criterion)}</div></article>${last?renderEpiResult():''}<div class="epi-controls"><button class="btn-outline" ${state.epiStep===0?'disabled':''} onclick="setEpiStep(${state.epiStep-1})">← Anterior</button><div class="epi-dots">${EPI_STEPS.map((_,i)=>`<span class="epi-dot ${i===state.epiStep?'active':''}"></span>`).join('')}</div><button class="btn-primary epi-small" onclick="${last?"goto('dashboard')":"setEpiStep("+(state.epiStep+1)+")"}">${last?'Finalizar recorrido':'Siguiente →'}</button></div></section></section>`;
+}
+function renderEpiResult(){return `<section class="epi-result-card card"><h2>Resultado final: doctrina bíblica confiable</h2><p>Habiendo completado el análisis sistemático a través del marco epistemológico, el bautismo de creyentes por profesión de fe consciente queda presentado como una doctrina bíblica confiable, madura y de profunda relevancia estructural para el orden de la iglesia.</p><div class="epi-download-panel"><div><h3>Tratado completo del ejemplo</h3><p>Descarga el estudio validado con mayor detalle sobre el sujeto del bautismo bajo este marco epistemológico.</p></div><a class="btn-primary epi-download-link" href="recursos/tratado_epistemologico_bautismo.pdf" download>📄 Descargar tratado</a></div></section>`;}
+
 render();
